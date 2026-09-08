@@ -54,7 +54,10 @@ export default async function RootLayout({
       <body
         className={`${vazirmatn.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <ClerkProvider>
+        <ClerkProvider
+          signInForceRedirectUrl="/console"
+          signUpForceRedirectUrl="/signup"
+        >
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

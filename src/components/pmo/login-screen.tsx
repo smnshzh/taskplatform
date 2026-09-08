@@ -155,6 +155,19 @@ export function LoginScreen() {
                 {busy ? "در حال ورود..." : "ورود"}
               </Button>
             </form>
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">Clerk</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <div className="space-y-2">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/sign-in?redirect_url=/console">ورود با Clerk</Link>
+              </Button>
+              <Button asChild variant="ghost" className="w-full">
+                <Link href="/signup">ساخت شرکت</Link>
+              </Button>
+            </div>
             <div className="mt-4 text-center text-sm text-muted-foreground">
               حساب شرکت ندارید؟{" "}
               <Link href="/signup" className="font-semibold text-primary hover:underline">

@@ -152,7 +152,7 @@ export const SITE_COPY: Record<Locale, Copy> = {
       eyebrow: "ایجاد حساب شرکت",
       title: "راهکار را انتخاب کنید و داخل tenant خودتان شروع کنید.",
       description:
-        "این فرم شرکت را می‌سازد، حساب مالک اول را ایجاد می‌کند و راهکار انتخاب‌شده را به آن متصل می‌کند.",
+        "ابتدا با Clerk وارد شوید، سپس این فرم شرکت را می‌سازد، حساب مالک اول را ایجاد می‌کند و راهکار انتخاب‌شده را به آن متصل می‌کند.",
       infoCompany: "شناسه شرکت",
       infoSolution: "انتخاب راهکار",
       infoAccess: "دسترسی مستقیم",
@@ -242,7 +242,7 @@ export const SITE_COPY: Record<Locale, Copy> = {
       eyebrow: "Create a company account",
       title: "Pick a solution and start inside your own tenant.",
       description:
-        "This form creates the company, the first owner account, and binds the selected solution to that company.",
+        "Sign in with Clerk first, then this form creates the company, the first owner account, and binds the selected solution to that company.",
       infoCompany: "Company identity",
       infoSolution: "Solution selection",
       infoAccess: "Direct access",

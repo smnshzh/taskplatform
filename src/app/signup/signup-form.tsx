@@ -50,7 +50,11 @@ export function SignupForm({
       });
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.error ?? copy.signup.errorFallback);
+        if (response.status === 401) {
+          setError(locale === "en" ? "Sign in with Clerk first." : "ابتدا با Clerk وارد شوید.");
+        } else {
+          setError(payload.error ?? copy.signup.errorFallback);
+        }
         return;
       }
       router.push("/console");

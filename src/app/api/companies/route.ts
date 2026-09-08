@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { SESSION_COOKIE } from "@/lib/auth";
@@ -27,6 +28,14 @@ const companySignupSchema = z.object({
 export async function POST(req: NextRequest) {
   const requestId = req.headers.get("x-request-id") || randomUUID();
   const ipAddress = getClientIp(req);
+  const { isAuthenticated, userId } = await auth();
+
+  if (!isAuthenticated || !userId) {
+    return NextResponse.json(
+      { error: "برای ساخت شرکت ابتدا با Clerk وارد شوید." },
+      { status: 401 }
+    );
+  }
 
   try {
     const parsed = companySignupSchema.safeParse(await req.json());
@@ -43,6 +52,17 @@ export async function POST(req: NextRequest) {
     const handle = parsed.data.handle?.trim()
       ? ensureHandlePrefix(parsed.data.handle)
       : buildCompanyOwnerHandle(companySlug);
+
+    const existingLinkedMember = await db.member.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true },
+    });
+    if (existingLinkedMember) {
+      return NextResponse.json(
+        { error: "این حساب Clerk قبلاً به یک شرکت وصل شده است." },
+        { status: 409 }
+      );
+    }
 
     const existingCompany = await db.company.findUnique({ where: { slug: companySlug }, select: { id: true } });
     if (existingCompany) {
@@ -68,6 +88,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: parsed.data.ownerName,
           handle,
+          clerkUserId: userId,
           password: passwordHash,
           role: "SUPER_ADMIN",
           mustChangePassword: false,

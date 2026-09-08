@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,6 +122,8 @@ export function DashboardShell() {
   const setAuthLoading = useTMStore((s) => s.setAuthLoading);
   const view = useTMStore((s) => s.view);
   const setView = useTMStore((s) => s.setView);
+  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useAuth();
+  const [bridgingClerk, setBridgingClerk] = React.useState(false);
 
   const [newTaskOpen, setNewTaskOpen] = React.useState(false);
   const [newTaskKey, setNewTaskKey] = React.useState(0);
@@ -157,6 +160,15 @@ export function DashboardShell() {
       cancelled = true;
     };
   }, []);
+
+  React.useEffect(() => {
+    if (authLoading || member || bridgingClerk || !clerkLoaded || !clerkSignedIn) {
+      return;
+    }
+
+    setBridgingClerk(true);
+    window.location.replace("/api/auth/clerk/bridge?returnTo=/console");
+  }, [authLoading, bridgingClerk, clerkLoaded, clerkSignedIn, member]);
 
   // Fetch tasks
   const { data } = useQuery({
@@ -196,6 +208,17 @@ export function DashboardShell() {
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           <p className="text-sm">در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (bridgingClerk) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-muted/20">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          <p className="text-sm">در حال اتصال به Clerk...</p>
         </div>
       </div>
     );
