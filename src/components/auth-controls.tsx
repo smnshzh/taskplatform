@@ -1,10 +1,9 @@
 "use client";
 
 import {
-  SignedIn,
-  SignedOut,
   SignInButton,
   SignUpButton,
+  Show,
   UserButton,
 } from "@clerk/nextjs";
 
@@ -14,7 +13,7 @@ const triggerClass =
 export function AuthControls() {
   return (
     <div className="flex items-center gap-2">
-      <SignedOut>
+      <Show when="signed-out">
         <SignInButton mode="modal">
           <button
             className={`${triggerClass} border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50`}
@@ -29,13 +28,13 @@ export function AuthControls() {
             ثبت‌نام
           </button>
         </SignUpButton>
-      </SignedOut>
-      <SignedIn>
+      </Show>
+      <Show when="signed-in">
         <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
           <span className="text-xs font-medium text-slate-500">حساب شما</span>
           <UserButton />
         </div>
-      </SignedIn>
+      </Show>
     </div>
   );
 }

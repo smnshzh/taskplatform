@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, LockKeyhole, Workflow } from "lucide-react";
+import { SiteHeader } from "@/components/site-header";
 
 const HIGHLIGHTS = [
   "Task assignment and tracking",
@@ -10,8 +11,11 @@ const HIGHLIGHTS = [
 
 export default function TaskPlatformSolutionPage() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#08111f_0%,#0f172a_60%,#111827_100%)] px-6 py-16 text-white">
-      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#08111f_0%,#0f172a_60%,#111827_100%)] px-6 py-8 text-white">
+      <div className="mx-auto max-w-6xl">
+        <SiteHeader />
+
+        <div className="mt-12 grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
         <section>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-sky-300">
             Solution
@@ -71,6 +75,7 @@ export default function TaskPlatformSolutionPage() {
             </div>
           </div>
         </aside>
+        </div>
       </div>
     </main>
   );

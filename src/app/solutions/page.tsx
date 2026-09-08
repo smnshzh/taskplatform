@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SOLUTIONS } from "@/lib/platform";
+import { SiteHeader } from "@/components/site-header";
 
 export default function SolutionsPage() {
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
+    <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-900">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+        <SiteHeader />
+
+        <div className="mt-12 max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
             Solutions
           </p>
