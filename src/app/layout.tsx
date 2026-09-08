@@ -27,7 +27,6 @@ export const metadata: Metadata = {
   title: "SolutionCompany",
   description:
     "یک وب‌سایت چندراهکار برای ثبت شرکت، انتخاب راهکار، و اجرای آن به‌صورت جداگانه برای هر سازمان.",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -63,18 +62,6 @@ export default function RootLayout({
             <Toaster />
             <SonnerToaster position="top-center" richColors />
           </ThemeProvider>
-          {/* PWA Service Worker Registration */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js');
-                });
-              }
-            `,
-            }}
-          />
         </ClerkProvider>
       </body>
     </html>
