@@ -28,16 +28,17 @@ const companySignupSchema = z.object({
 export async function POST(req: NextRequest) {
   const requestId = req.headers.get("x-request-id") || randomUUID();
   const ipAddress = getClientIp(req);
-  const { isAuthenticated, userId } = await auth();
-
-  if (!isAuthenticated || !userId) {
-    return NextResponse.json(
-      { error: "برای ساخت شرکت ابتدا با Clerk وارد شوید." },
-      { status: 401 }
-    );
-  }
 
   try {
+    const { isAuthenticated, userId } = await auth();
+
+    if (!isAuthenticated || !userId) {
+      return NextResponse.json(
+        { error: "برای ساخت شرکت ابتدا با Clerk وارد شوید." },
+        { status: 401 }
+      );
+    }
+
     const parsed = companySignupSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json({ error: "Company signup data is invalid." }, { status: 400 });
