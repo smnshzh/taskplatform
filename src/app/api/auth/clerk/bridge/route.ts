@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { CONSOLE_SETUP_COOKIE } from "@/lib/console-setup";
 import {
   generateSessionToken,
   getClientIp,
@@ -40,7 +41,13 @@ export async function GET(req: NextRequest) {
     });
 
     if (!member) {
-      return NextResponse.redirect(new URL("/signup", req.url));
+      const response = NextResponse.redirect(new URL("/console", req.url));
+      response.cookies.set(CONSOLE_SETUP_COOKIE, "1", {
+        path: "/",
+        sameSite: "lax",
+        maxAge: 60 * 15,
+      });
+      return response;
     }
 
     const rawToken = generateSessionToken();
@@ -73,10 +80,21 @@ export async function GET(req: NextRequest) {
 
     const response = NextResponse.redirect(new URL(returnTo, req.url));
     response.cookies.set(SESSION_COOKIE, rawToken, sessionCookieOptions(req));
+    response.cookies.set(CONSOLE_SETUP_COOKIE, "", {
+      path: "/",
+      sameSite: "lax",
+      maxAge: 0,
+    });
 
     return response;
   } catch (error) {
     console.error("Clerk bridge error:", { requestId, error });
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    const response = NextResponse.redirect(new URL("/console", req.url));
+    response.cookies.set(CONSOLE_SETUP_COOKIE, "1", {
+      path: "/",
+      sameSite: "lax",
+      maxAge: 60 * 15,
+    });
+    return response;
   }
 }

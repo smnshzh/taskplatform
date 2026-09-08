@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { UserButton } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -36,6 +38,7 @@ import { useTMStore, type ViewKey } from "@/lib/pmo-store";
 import { ROLES, roleByKey } from "@/lib/constants";
 import type { SerializedTask } from "@/lib/serialize";
 import { toPersianDigits, isOverdue, formatJalaliLong } from "@/lib/jalali";
+import { hasConsoleSetupCookie } from "@/lib/console-setup";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -124,6 +127,8 @@ export function DashboardShell() {
   const setView = useTMStore((s) => s.setView);
   const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useAuth();
   const [bridgingClerk, setBridgingClerk] = React.useState(false);
+  const [setupStateReady, setSetupStateReady] = React.useState(false);
+  const [setupRequired, setSetupRequired] = React.useState(false);
 
   const [newTaskOpen, setNewTaskOpen] = React.useState(false);
   const [newTaskKey, setNewTaskKey] = React.useState(0);
@@ -162,13 +167,26 @@ export function DashboardShell() {
   }, []);
 
   React.useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    setSetupRequired(hasConsoleSetupCookie(document.cookie));
+    setSetupStateReady(true);
+  }, []);
+
+  React.useEffect(() => {
     if (authLoading || member || bridgingClerk || !clerkLoaded || !clerkSignedIn) {
+      return;
+    }
+
+    if (!setupStateReady || setupRequired) {
       return;
     }
 
     setBridgingClerk(true);
     window.location.replace("/api/auth/clerk/bridge?returnTo=/console");
-  }, [authLoading, bridgingClerk, clerkLoaded, clerkSignedIn, member]);
+  }, [authLoading, bridgingClerk, clerkLoaded, clerkSignedIn, member, setupRequired, setupStateReady]);
 
   // Fetch tasks
   const { data } = useQuery({
@@ -213,6 +231,17 @@ export function DashboardShell() {
     );
   }
 
+  if (!member && clerkLoaded && clerkSignedIn && !setupStateReady) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-muted/20">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          <p className="text-sm">در حال بررسی حساب Clerk...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (bridgingClerk) {
     return (
       <div className="h-screen flex items-center justify-center bg-muted/20">
@@ -225,6 +254,9 @@ export function DashboardShell() {
   }
 
   if (!member) {
+    if (clerkLoaded && clerkSignedIn && setupRequired) {
+      return <ConsoleSetupScreen />;
+    }
     return <LoginScreen />;
   }
 
@@ -522,6 +554,39 @@ export function DashboardShell() {
           onCreated={refreshAll}
         />
       )}
+    </div>
+  );
+}
+
+function ConsoleSetupScreen() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-muted/20 p-4">
+      <div className="w-full max-w-lg rounded-3xl border bg-background p-8 shadow-xl">
+        <div className="space-y-4">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Building2 className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">حساب شما وصل شد، اما هنوز شرکتی ندارد</h1>
+            <p className="mt-2 text-sm text-muted-foreground leading-6">
+              با همین حساب Clerk وارد شده‌اید. برای ادامه باید شرکت خود را بسازید تا داشبورد و داده‌های همان شرکت فعال شود.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Button asChild className="w-full">
+            <Link href="/signup">ساخت شرکت</Link>
+          </Button>
+          <div className="flex items-center justify-center rounded-xl border border-dashed px-4 py-3">
+            <UserButton />
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          اگر این حساب Clerk اشتباه است، از منوی پروفایل خارج شوید و با حساب درست وارد شوید.
+        </p>
+      </div>
     </div>
   );
 }
