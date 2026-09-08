@@ -1,5 +1,7 @@
 import { SignupForm } from "./signup-form";
 import type { SolutionKey } from "@/lib/platform";
+import { getLocaleFromCookies } from "@/lib/site-locale";
+import { getSiteCopy } from "@/lib/site-i18n";
 
 type SignupSearchParams = {
   solution?: string | string[];
@@ -10,6 +12,8 @@ export default async function SignupPage({
 }: {
   searchParams?: SignupSearchParams | Promise<SignupSearchParams>;
 }) {
+  const locale = await getLocaleFromCookies();
+  const copy = getSiteCopy(locale);
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const solution = resolvedSearchParams?.solution;
   const initialSolutionKey =
@@ -19,5 +23,5 @@ export default async function SignupPage({
       ? ((Array.isArray(solution) ? solution[0] : solution) as SolutionKey)
       : "taskplatform";
 
-  return <SignupForm initialSolutionKey={initialSolutionKey} />;
+  return <SignupForm locale={locale} copy={copy} initialSolutionKey={initialSolutionKey} />;
 }

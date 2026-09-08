@@ -1,49 +1,74 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, LayoutGrid, ShieldCheck, Sparkles, Workflow } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  LayoutGrid,
+  ShieldCheck,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
 import { SOLUTIONS } from "@/lib/platform";
+import { getLocaleFromCookies } from "@/lib/site-locale";
+import { getSiteCopy, localizedPath } from "@/lib/site-i18n";
 import { SiteHeader } from "@/components/site-header";
 
-export default function Home() {
+export default async function Home() {
+  const locale = await getLocaleFromCookies();
+  const copy = getSiteCopy(locale);
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_28%),linear-gradient(180deg,#f8fbff_0%,#ffffff_45%,#f8fafc_100%)] text-slate-900">
       <section className="mx-auto w-full max-w-7xl px-6 py-8 lg:px-10">
-        <SiteHeader />
+        <SiteHeader
+          locale={locale}
+          brandLine={copy.header.brandLine}
+          brandSubtitle={copy.header.brandSubtitle}
+          solutionsLabel={copy.header.solutions}
+          localeToggleLabel={copy.header.localeToggleLabel}
+          localeEnglish={copy.header.localeEnglish}
+          localePersian={copy.header.localePersian}
+          signInLabel={copy.header.signIn}
+          signUpLabel={copy.header.signUp}
+          accountLabel={copy.header.account}
+        />
       </section>
 
       <section className="mx-auto grid w-full max-w-7xl gap-12 px-6 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-10 lg:py-12">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm backdrop-blur">
             <Sparkles className="h-4 w-4" />
-            One website. Multiple solutions. Each company gets its own workspace.
+            {copy.home.badge}
           </div>
           <h1 className="mt-8 text-5xl font-black tracking-tight text-slate-950 sm:text-6xl">
-            A company solution website that feels clear from the first click.
+            {copy.home.title}
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            SolutionCompany is the front door for teams that want to create an account, select a solution, and work in an isolated tenant. TaskPlatform is the first live solution, with more product lines ready to be added.
+            {copy.home.description}
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/signup"
+              href={localizedPath(locale, "/signup")}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Create a company account
+              {copy.home.primaryCta}
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <Link
-              href="/solutions"
+              href={localizedPath(locale, "/solutions")}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
             >
-              Browse solutions
+              {copy.home.secondaryCta}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            <Metric label="Company boundary" value="1 tenant / company" />
-            <Metric label="Solutions" value="TaskPlatform + more" />
-            <Metric label="Access" value="Clerk auth" />
+            <Metric label={copy.home.metricCompanyBoundaryLabel} value={copy.home.metricCompanyBoundaryValue} />
+            <Metric label={copy.home.metricSolutionsLabel} value={copy.home.metricSolutionsValue} />
+            <Metric label={copy.home.metricAccessLabel} value={copy.home.metricAccessValue} />
           </div>
         </div>
 
@@ -52,35 +77,35 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
-                  How it works
+                  {copy.home.howTitle}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  Built for company onboarding
+                  {locale === "en" ? "Built for company onboarding" : "ساخته شده برای ورود شرکت‌ها"}
                 </h2>
               </div>
               <div className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-                Fast setup
+                {locale === "en" ? "Fast setup" : "راه‌اندازی سریع"}
               </div>
             </div>
             <ol className="mt-6 space-y-4">
-              <HowItem index="01" title="Create a company" text="Signup creates the company record, owner account, and selected solution." />
-              <HowItem index="02" title="Select a solution" text="TaskPlatform starts as the live solution; more product lines can be added later." />
-              <HowItem index="03" title="Open the console" text="The owner lands in the app console with company-scoped access." />
+              <HowItem index="01" title={copy.home.howStep1Title} text={copy.home.howStep1Text} />
+              <HowItem index="02" title={copy.home.howStep2Title} text={copy.home.howStep2Text} />
+              <HowItem index="03" title={copy.home.howStep3Title} text={copy.home.howStep3Text} />
             </ol>
           </div>
 
           <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200">
-              Start here
+              {locale === "en" ? "Start here" : "از اینجا شروع کنید"}
             </p>
             <p className="mt-3 text-xl font-bold leading-8">
-              Every company gets a clean public website, a signup flow, and a private console.
+              {copy.home.startTitle}
             </p>
             <Link
-              href="/signup"
+              href={localizedPath(locale, "/signup")}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
             >
-              Create company
+              {copy.home.startCta}
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </div>
@@ -89,31 +114,60 @@ export default function Home() {
 
       <section className="mx-auto w-full max-w-7xl px-6 pb-6 lg:px-10">
         <div className="grid gap-5 lg:grid-cols-3">
-          {SOLUTIONS.map((solution) => (
-            <article
-              key={solution.key}
-              className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur"
-            >
-              <div className={`mb-5 inline-flex rounded-2xl bg-gradient-to-br ${solution.accent} p-3 text-white`}>
-                {solution.key === "taskplatform" ? <LayoutGrid className="h-6 w-6" /> : solution.key === "insight" ? <ShieldCheck className="h-6 w-6" /> : <Workflow className="h-6 w-6" />}
-              </div>
-              <h2 className="text-xl font-bold">{solution.name}</h2>
-              <p className="mt-1 text-sm font-medium uppercase tracking-wide text-slate-500">{solution.slogan}</p>
-              <p className="mt-4 text-sm leading-7 text-slate-600">{solution.description}</p>
-              <Link href={solution.href} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700">
-                Explore
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </article>
-          ))}
+          {SOLUTIONS.map((solution) => {
+            const labels =
+              solution.key === "taskplatform"
+                ? {
+                    name: copy.options.taskplatformName,
+                    slogan: copy.options.taskplatformSlogan,
+                    description: copy.options.taskplatformDescription,
+                    icon: LayoutGrid,
+                  }
+                : solution.key === "insight"
+                  ? {
+                      name: copy.options.insightName,
+                      slogan: copy.options.insightSlogan,
+                      description: copy.options.insightDescription,
+                      icon: ShieldCheck,
+                    }
+                  : {
+                      name: copy.options.workflowsName,
+                      slogan: copy.options.workflowsSlogan,
+                      description: copy.options.workflowsDescription,
+                      icon: Workflow,
+                    };
+
+            const Icon = labels.icon;
+
+            return (
+              <article
+                key={solution.key}
+                className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur"
+              >
+                <div className={`mb-5 inline-flex rounded-2xl bg-gradient-to-br ${solution.accent} p-3 text-white`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h2 className="text-xl font-bold">{labels.name}</h2>
+                <p className="mt-1 text-sm font-medium uppercase tracking-wide text-slate-500">{labels.slogan}</p>
+                <p className="mt-4 text-sm leading-7 text-slate-600">{labels.description}</p>
+                <Link
+                  href={localizedPath(locale, solution.href)}
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700"
+                >
+                  {locale === "en" ? "Explore" : "مشاهده"}
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-10 lg:py-14">
         <div className="grid gap-4 rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm lg:grid-cols-3">
-          <Feature icon={Building2} title="Company isolation" text="Each company gets its own tenant boundary and account." />
-          <Feature icon={CheckCircle2} title="Solution selection" text="TaskPlatform is one solution in a broader multi-solution website." />
-          <Feature icon={ShieldCheck} title="Secure access" text="The platform is designed around signed-in company owners and controlled access." />
+          <Feature icon={Building2} title={copy.home.featureIsolation} text={locale === "en" ? "Each company gets its own tenant boundary and account." : "هر شرکت مرز دسترسی و داده خودش را دارد."} />
+          <Feature icon={CheckCircle2} title={copy.home.featureSelection} text={locale === "en" ? "TaskPlatform is one solution in a broader multi-solution website." : "TaskPlatform یکی از راهکارهای این وب‌سایت چندمحصولی است."} />
+          <Feature icon={ShieldCheck} title={copy.home.featureSecure} text={locale === "en" ? "The platform is designed around signed-in company owners and controlled access." : "دسترسی بر پایه مالک شرکت و کنترل سرور انجام می‌شود."} />
         </div>
       </section>
     </main>
