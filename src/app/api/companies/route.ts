@@ -21,7 +21,7 @@ const companySignupSchema = z.object({
   companySlug: z.string().trim().min(2).max(80).optional(),
   ownerName: z.string().trim().min(2).max(120),
   handle: z.string().trim().min(2).max(100).optional(),
-  password: z.string().min(12).max(200),
+  password: z.string().min(12).max(200).optional(),
   solutionKey: z.string().trim().min(1).max(64),
 });
 
@@ -74,7 +74,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Handle already exists." }, { status: 409 });
     }
 
-    const passwordHash = await hashPassword(parsed.data.password);
+    const generatedPassword = parsed.data.password?.trim() && parsed.data.password.trim().length >= 12
+      ? parsed.data.password.trim()
+      : randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "");
+    const passwordHash = await hashPassword(generatedPassword);
     const rawToken = generateSessionToken();
     const { company, owner } = await db.$transaction(async (tx) => {
       const createdCompany = await tx.company.create({
