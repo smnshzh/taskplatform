@@ -1,13 +1,22 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import createMiddleware from "next-intl/middleware";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-const intlMiddleware = createMiddleware({
-  locales: ["en"],
-  defaultLocale: "en",
-});
+function stripLocalePrefix(pathname: string) {
+  if (pathname === "/en") return "/";
+  if (pathname.startsWith("/en/")) return pathname.slice(3) || "/";
+  return null;
+}
 
-export default clerkMiddleware(async (auth, request) => {
-  return intlMiddleware(request);
+export default clerkMiddleware(async (_auth, request: NextRequest) => {
+  const rewrittenPath = stripLocalePrefix(request.nextUrl.pathname);
+  if (rewrittenPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = rewrittenPath;
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 });
 
 export const config = {
