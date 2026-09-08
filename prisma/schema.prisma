@@ -1,0 +1,467 @@
+// TaskManager — Hierarchical Organization with Task Scheduling & Letter Referral
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Solution {
+  key         String    @id
+  name        String
+  description String?
+  isEnabled   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  companies   Company[]
+}
+
+model Company {
+  id                   String      @id @default(cuid())
+  name                 String
+  slug                 String      @unique
+  selectedSolutionKey   String
+  selectedSolution      Solution    @relation(fields: [selectedSolutionKey], references: [key])
+  ownerMemberId         String?     @unique
+  ownerMember          Member?     @relation("CompanyOwner", fields: [ownerMemberId], references: [id], onDelete: SetNull)
+  members              Member[]
+  groups               OrgGroup[]
+  taskTemplates        TaskTemplate[]
+  taskSchedules        TaskSchedule[]
+  tasks                Task[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+}
+
+// ---- Organization Groups (مجموعه‌ها) ----
+// Each group has one MANAGER, can have multiple SUPERVISORs, and under each supervisor, multiple SPECIALISTs
+model OrgGroup {
+  id                    String                 @id @default(cuid())
+  name                  String // e.g. "تأمین فانتزی", "هوش تجاری"
+  code                  String                 @unique // e.g. "GRP-001"
+  companyId             String?
+  company               Company?               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  members               Member[]
+  managers              GroupManager[]
+  taskTemplates         TaskTemplate[]
+  tasks                 Task[]
+  baleGroupDestinations BaleGroupDestination[]
+  createdAt             DateTime               @default(now())
+
+  @@index([companyId])
+}
+
+// ---- Group-Manager junction (many-to-many) ----
+model GroupManager {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     OrgGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, memberId])
+  @@index([groupId])
+  @@index([memberId])
+}
+
+// ---- Team members with hierarchical roles ----
+// SUPER_ADMIN: sees everything, manages all groups
+// MANAGER: manages one group, sees group + subordinates
+// SUPERVISOR: under a manager, supervises specialists
+// SPECIALIST: does the actual work
+model Member {
+  id                      String                   @id @default(cuid())
+  name                    String
+  handle                  String                   @unique
+  password                String
+  mustChangePassword      Boolean                  @default(true)
+  isActive                Boolean                  @default(true)
+  role                    String                   @default("SPECIALIST") // SUPER_ADMIN | MANAGER | SUPERVISOR | SPECIALIST
+  companyId               String?
+  company                 Company?                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  groupId                 String?
+  group                   OrgGroup?                @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  supervisorId            String?
+  supervisor              Member?                  @relation("Supervision", fields: [supervisorId], references: [id], onDelete: SetNull)
+  subordinates            Member[]                 @relation("Supervision")
+  ownedCompany            Company?                @relation("CompanyOwner")
+  managedGroups           GroupManager[]
+  avatar                  String?
+  createdAt               DateTime                 @default(now())
+  lastLoginAt             DateTime?
+  tasks                   Task[]
+  createdTasks            Task[]                   @relation("TaskCreator")
+  referredTasks           Task[]                   @relation("TaskReferer")
+  approvedTasks           Task[]                   @relation("TaskApprover")
+  assignedSchedules       TaskSchedule[]
+  overrideSchedules       TaskSchedule[]           @relation("ScheduleOverride")
+  sessions                Session[]
+  auditLogs               AuditLog[]               @relation("AuditActor")
+  accessGroups            AccessGroupMember[]
+  notificationChannels    NotificationChannel[]
+  notificationPreferences NotificationPreference[]
+  notificationOutbox      NotificationOutbox[]
+  createdTaskRelations    TaskRelation[]
+  accountLinkCodes        AccountLinkCode[]
+  baleConversation        BaleConversation?
+
+  @@index([groupId])
+  @@index([companyId])
+  @@index([supervisorId])
+  @@index([role])
+}
+
+// ---- Task Templates (الگوهای تسک) ----
+// Defines reusable task names per group for scheduling
+model TaskTemplate {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  groupId     String
+  group       OrgGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  companyId   String?
+  company     Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  priority    String         @default("MEDIUM") // HIGH | MEDIUM | LOW
+  createdAt   DateTime       @default(now())
+  schedules   TaskSchedule[]
+
+  @@index([groupId])
+  @@index([companyId])
+}
+
+// ---- Task Schedules (زمان‌بندی تسک‌ها) ----
+// Weekly schedule: which task on which day at what time for which person
+model TaskSchedule {
+  id                 String       @id @default(cuid())
+  taskTemplateId     String
+  taskTemplate       TaskTemplate @relation(fields: [taskTemplateId], references: [id], onDelete: Cascade)
+  companyId          String?
+  company            Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  dayOfWeek          Int? // 0=Saturday ... 6=Friday (Persian week)
+  specificDate       String? // YYYY-MM-DD for one-time scheduling (overrides dayOfWeek)
+  startTime          String // "HH:MM"
+  endTime            String // "HH:MM"
+  assigneeId         String
+  assignee           Member       @relation(fields: [assigneeId], references: [id])
+  overrideAssigneeId String?
+  overrideAssignee   Member?      @relation("ScheduleOverride", fields: [overrideAssigneeId], references: [id], onDelete: SetNull)
+  overrideDate       String? // YYYY-MM-DD when override applies (null = all days)
+  createdAt          DateTime     @default(now())
+
+  @@index([taskTemplateId])
+  @@index([assigneeId])
+  @@index([dayOfWeek])
+  @@index([companyId])
+}
+
+// ---- Tasks ----
+// source: MANUAL (created by manager/supervisor) | SCHEDULED (from schedule) | REFERRED (from letter)
+model Task {
+  id               String         @id @default(cuid())
+  code             String         @unique // e.g. TSK-0001
+  title            String
+  description      String?
+  groupId          String
+  group            OrgGroup       @relation(fields: [groupId], references: [id])
+  companyId        String?
+  company          Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  source           String         @default("MANUAL") // MANUAL | SCHEDULED | REFERRED
+  assigneeId       String
+  assignee         Member         @relation(fields: [assigneeId], references: [id])
+  creatorId        String?
+  creator          Member?        @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  priority         String         @default("MEDIUM") // HIGH | MEDIUM | LOW
+  status           String         @default("PENDING") // PENDING | STARTED | BLOCKED | DONE
+  // Letter referral fields
+  letterNumber     String?
+  letterDate       String? // YYYY-MM-DD
+  refererId        String?
+  referer          Member?        @relation("TaskReferer", fields: [refererId], references: [id], onDelete: SetNull)
+  approvalStatus   String? // PENDING_APPROVAL | APPROVED | REJECTED (null = non-referred)
+  approverId       String?
+  approver         Member?        @relation("TaskApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  approvedAt       DateTime?
+  // Timing
+  startTime        DateTime?
+  deadline         DateTime
+  link             String?
+  followUpReason   String?
+  startedAt        DateTime?
+  doneDescription  String?
+  doneAt           DateTime?
+  deletedAt        DateTime? // Soft delete — null = active, non-null = in trash
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  logs             FollowUpLog[]
+  workflowPrevious TaskRelation[] @relation("WorkflowNextTask")
+  workflowNext     TaskRelation[] @relation("WorkflowPreviousTask")
+
+  @@index([assigneeId])
+  @@index([creatorId])
+  @@index([groupId])
+  @@index([companyId])
+  @@index([status])
+  @@index([deadline])
+  @@index([approvalStatus])
+  @@index([source])
+  @@index([deletedAt])
+}
+
+// Directed workflow edge: previousTask must be completed before nextTask.
+model TaskRelation {
+  id             String   @id @default(cuid())
+  previousTaskId String
+  previousTask   Task     @relation("WorkflowPreviousTask", fields: [previousTaskId], references: [id], onDelete: Cascade)
+  nextTaskId     String
+  nextTask       Task     @relation("WorkflowNextTask", fields: [nextTaskId], references: [id], onDelete: Cascade)
+  createdById    String?
+  createdBy      Member?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  workflowName   String?
+  createdAt      DateTime @default(now())
+
+  @@unique([previousTaskId, nextTaskId])
+  @@index([previousTaskId])
+  @@index([nextTaskId])
+  @@index([createdById])
+}
+
+// ---- Follow-up / activity log per task ----
+model FollowUpLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  type      String // STATUS_CHANGE | APPROVAL | NOTE
+  message   String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model AccessGroup {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  description String?
+  permissions String[]
+  isSystem    Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  members     AccessGroupMember[]
+}
+
+model AccessGroupMember {
+  accessGroupId String
+  memberId      String
+  createdAt     DateTime    @default(now())
+  accessGroup   AccessGroup @relation(fields: [accessGroupId], references: [id], onDelete: Cascade)
+  member        Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([accessGroupId, memberId])
+  @@index([memberId])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  memberId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  ipAddress  String?
+  userAgent  String?
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, revokedAt])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  handle     String
+  ipAddress  String?
+  successful Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([handle, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String?
+  entityId   String?
+  result     String
+  requestId  String?
+  ipAddress  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      Member?  @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+}
+
+model NotificationChannel {
+  id             String   @id @default(cuid())
+  memberId       String
+  provider       String
+  externalUserId String
+  externalChatId String?
+  isVerified     Boolean  @default(false)
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalUserId])
+  @@unique([memberId, provider])
+  @@index([memberId, provider])
+}
+
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  memberId          String
+  eventType         String
+  telegramEnabled   Boolean  @default(true)
+  baleEnabled       Boolean  @default(true)
+  inAppEnabled      Boolean  @default(true)
+  quietHoursEnabled Boolean  @default(false)
+  quietHoursStart   String?
+  quietHoursEnd     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  member            Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, eventType])
+}
+
+model NotificationOutbox {
+  id             String            @id @default(cuid())
+  eventType      String
+  aggregateType  String
+  aggregateId    String
+  memberId       String?
+  provider       String
+  recipientId    String
+  payload        Json
+  idempotencyKey String            @unique
+  status         String            @default("PENDING")
+  attemptCount   Int               @default(0)
+  nextAttemptAt  DateTime?
+  sentAt         DateTime?
+  failedAt       DateTime?
+  lastError      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  member         Member?           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  logs           NotificationLog[]
+
+  @@index([status, nextAttemptAt])
+  @@index([memberId, createdAt])
+}
+
+model NotificationLog {
+  id                String              @id @default(cuid())
+  outboxId          String?
+  provider          String
+  recipientId       String
+  eventType         String
+  status            String
+  providerMessageId String?
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime            @default(now())
+  outbox            NotificationOutbox? @relation(fields: [outboxId], references: [id], onDelete: SetNull)
+
+  @@index([provider, recipientId, createdAt])
+  @@index([outboxId])
+}
+
+model AccountLinkCode {
+  id           String    @id @default(cuid())
+  memberId     String
+  provider     String
+  codeHash     String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  createdByIp  String?
+  attemptCount Int       @default(0)
+  member       Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, provider, createdAt])
+  @@index([expiresAt])
+}
+
+model ProcessedProviderUpdate {
+  id               String   @id @default(cuid())
+  provider         String
+  providerUpdateId String
+  createdAt        DateTime @default(now())
+
+  @@unique([provider, providerUpdateId])
+  @@index([createdAt])
+}
+
+model BaleConversation {
+  id        String   @id @default(cuid())
+  memberId  String   @unique
+  step      String
+  data      Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model SystemSetting {
+  key            String   @id
+  valueEncrypted String
+  updatedById    String?
+  updatedAt      DateTime @updatedAt
+}
+
+model NotificationRule {
+  id                     String                @id @default(cuid())
+  name                   String
+  eventType              String
+  isEnabled              Boolean               @default(true)
+  leadMinutes            Int?
+  sendTime               String?
+  recipientMode          String                @default("ASSIGNEE")
+  baleGroupDestinationId String?
+  baleGroupDestination   BaleGroupDestination? @relation(fields: [baleGroupDestinationId], references: [id], onDelete: SetNull)
+  createdById            String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  @@index([isEnabled, eventType])
+  @@index([baleGroupDestinationId])
+}
+
+model BaleGroupDestination {
+  id          String             @id @default(cuid())
+  name        String
+  chatId      String             @unique
+  isEnabled   Boolean            @default(true)
+  orgGroupId  String?
+  orgGroup    OrgGroup?          @relation(fields: [orgGroupId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  rules       NotificationRule[]
+
+  @@index([isEnabled])
+  @@index([orgGroupId])
+}
