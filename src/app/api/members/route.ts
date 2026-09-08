@@ -5,6 +5,7 @@ import { ROLES } from "@/lib/constants";
 import { getCurrentMember, getVisibleMemberIds, canManage, getManagedGroupIds, isManagerOfGroup } from "@/lib/auth";
 import { hashPassword } from "@/features/auth/server/password";
 import { memberHasPermission } from "@/features/access-control/server/permissions";
+import { buildCompanyMemberHandle, ensureHandlePrefix } from "@/lib/company-handle";
 
 // GET /api/members — role-scoped listing
 export async function GET(req: NextRequest) {
@@ -101,23 +102,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, handle, password, role, groupId, supervisorId } = body ?? {};
 
-    if (!name || !handle || !role || !password) {
+    if (!name || !role || !password) {
       return NextResponse.json(
-        { error: "نام، هندل، رمز عبور اولیه و نقش الزامی است." },
+        { error: "نام، رمز عبور اولیه و نقش الزامی است." },
         { status: 400 }
       );
     }
     if (String(password).length < 8) {
       return NextResponse.json(
         { error: "رمز عبور اولیه باید حداقل ۸ کاراکتر باشد." },
-        { status: 400 }
-      );
-    }
-
-    // Handle must start with @
-    if (!handle.startsWith("@")) {
-      return NextResponse.json(
-        { error: "هندل باید با @ شروع شود." },
         { status: 400 }
       );
     }
@@ -159,8 +152,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const companySlug = me.company?.slug ?? "company";
+    const generatedHandle = handle?.trim()
+      ? ensureHandlePrefix(handle)
+      : buildCompanyMemberHandle(companySlug, String(name).trim());
+
     // Check handle uniqueness
-    const existing = await db.member.findUnique({ where: { handle } });
+    const existing = await db.member.findUnique({ where: { handle: generatedHandle } });
     if (existing) {
       return NextResponse.json(
         { error: "این هندل قبلاً ثبت شده است." },
@@ -196,7 +194,7 @@ export async function POST(req: NextRequest) {
     const member = await db.member.create({
       data: {
         name: String(name).trim(),
-        handle: handle.trim(),
+        handle: generatedHandle,
         password: await hashPassword(String(password)),
         mustChangePassword: true,
         role,

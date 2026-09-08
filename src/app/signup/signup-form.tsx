@@ -4,10 +4,11 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Building2, Loader2, Sparkles } from "lucide-react";
-import { SOLUTIONS, type SolutionKey } from "@/lib/platform";
+import { SOLUTIONS, slugifyCompanyName, type SolutionKey } from "@/lib/platform";
 import { SiteHeader } from "@/components/site-header";
 import type { Locale, SITE_COPY } from "@/lib/site-i18n";
 import { localizedPath } from "@/lib/site-i18n";
+import { buildCompanyOwnerHandle } from "@/lib/company-handle";
 
 type SiteCopy = typeof SITE_COPY.en;
 
@@ -24,11 +25,12 @@ export function SignupForm({
   const [companyName, setCompanyName] = React.useState("");
   const [companySlug, setCompanySlug] = React.useState("");
   const [ownerName, setOwnerName] = React.useState("");
-  const [handle, setHandle] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [solutionKey, setSolutionKey] = React.useState<SolutionKey>(initialSolutionKey);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const effectiveCompanySlug = companySlug.trim() || slugifyCompanyName(companyName.trim());
+  const ownerHandlePreview = buildCompanyOwnerHandle(effectiveCompanySlug);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +44,6 @@ export function SignupForm({
           companyName,
           companySlug,
           ownerName,
-          handle,
           password,
           solutionKey,
         }),
@@ -92,6 +93,12 @@ export function SignupForm({
             <InfoRow title={copy.signup.infoCompany} text={locale === "en" ? "Your own slug, branding, and workspace boundary." : "شناسه، برند و مرز workspace مخصوص شرکت شما."} />
             <InfoRow title={copy.signup.infoSolution} text={locale === "en" ? "Choose TaskPlatform or another solution from the platform catalog." : "TaskPlatform یا یکی از راهکارهای دیگر را انتخاب کنید."} />
             <InfoRow title={copy.signup.infoAccess} text={locale === "en" ? "After signup you land in the console with the owner account already logged in." : "بعد از ثبت‌نام مستقیم وارد کنسول می‌شوید."} />
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="font-semibold text-white">{copy.signup.ownerHandle}</div>
+              <div className="mt-1 font-mono text-sm leading-6 text-cyan-200" dir="ltr">
+                {ownerHandlePreview}
+              </div>
+            </div>
           </div>
           <Link href={localizedPath(locale, "/")} className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-cyan-200">
             <ArrowLeft className="h-4 w-4" />
@@ -104,7 +111,12 @@ export function SignupForm({
             <Field label={copy.signup.companyName} value={companyName} onChange={setCompanyName} placeholder={locale === "en" ? "Example Company" : "مثال شرکت"} />
             <Field label={copy.signup.companySlug} value={companySlug} onChange={setCompanySlug} placeholder={locale === "en" ? "example-company" : "namayandegi"} />
             <Field label={copy.signup.ownerName} value={ownerName} onChange={setOwnerName} placeholder={locale === "en" ? "Amin Rahimi" : "امین رحیمی"} />
-            <Field label={copy.signup.ownerHandle} value={handle} onChange={setHandle} placeholder="@amin" dir="ltr" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">{copy.signup.ownerHandle}</label>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900" dir="ltr">
+                {ownerHandlePreview}
+              </div>
+            </div>
             <Field label={copy.signup.password} value={password} onChange={setPassword} placeholder="••••••••••" type="password" dir="ltr" />
 
             <div className="space-y-2">

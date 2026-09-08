@@ -13,12 +13,13 @@ import {
 import { hashPassword } from "@/features/auth/server/password";
 import { resolvePermissions } from "@/features/access-control/server/permissions";
 import { slugifyCompanyName, SOLUTIONS } from "@/lib/platform";
+import { buildCompanyOwnerHandle, ensureHandlePrefix } from "@/lib/company-handle";
 
 const companySignupSchema = z.object({
   companyName: z.string().trim().min(2).max(120),
   companySlug: z.string().trim().min(2).max(80).optional(),
   ownerName: z.string().trim().min(2).max(120),
-  handle: z.string().trim().min(2).max(100),
+  handle: z.string().trim().min(2).max(100).optional(),
   password: z.string().min(12).max(200),
   solutionKey: z.string().trim().min(1).max(64),
 });
@@ -39,7 +40,9 @@ export async function POST(req: NextRequest) {
     }
 
     const companySlug = (parsed.data.companySlug?.trim() || slugifyCompanyName(parsed.data.companyName)) || randomUUID().slice(0, 8);
-    const handle = parsed.data.handle.startsWith("@") ? parsed.data.handle : `@${parsed.data.handle}`;
+    const handle = parsed.data.handle?.trim()
+      ? ensureHandlePrefix(parsed.data.handle)
+      : buildCompanyOwnerHandle(companySlug);
 
     const existingCompany = await db.company.findUnique({ where: { slug: companySlug }, select: { id: true } });
     if (existingCompany) {

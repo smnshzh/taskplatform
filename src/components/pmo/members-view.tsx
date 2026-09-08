@@ -53,6 +53,7 @@ import { toPersianDigits, formatJalaliLong } from "@/lib/jalali";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { MemberBaleSettings } from "@/features/notifications/components/member-bale-settings";
 import { cn } from "@/lib/utils";
+import { buildCompanyMemberHandle } from "@/lib/company-handle";
 import { ROLES, roleByKey } from "@/lib/constants";
 import type { SerializedMember, SerializedGroup } from "@/lib/serialize";
 import { toast } from "sonner";
@@ -469,7 +470,7 @@ interface MemberFormDialogProps {
   allowedRoles: string[];
   onSaved: () => void;
   getSupervisorCandidates: (groupId: string | null) => SerializedMember[];
-  member: { role: string; groupId: string | null } | null;
+  member: { role: string; groupId: string | null; companySlug: string | null } | null;
 }
 
 function MemberFormDialog({
@@ -484,12 +485,15 @@ function MemberFormDialog({
   member,
 }: MemberFormDialogProps) {
   const [name, setName] = React.useState(() => editing?.name ?? "");
-  const [handle, setHandle] = React.useState(() => editing?.handle ?? "");
   const [password, setPassword] = React.useState("");
   const [role, setRole] = React.useState(() => editing?.role ?? allowedRoles[0] ?? "");
   const [groupId, setGroupId] = React.useState(() => editing?.groupId ?? member?.groupId ?? "");
   const [supervisorId, setSupervisorId] = React.useState(() => editing?.supervisorId ?? "");
   const [busy, setBusy] = React.useState(false);
+  const generatedHandle = React.useMemo(() => {
+    if (editing) return editing.handle;
+    return buildCompanyMemberHandle(member?.companySlug ?? "company", name);
+  }, [editing, member?.companySlug, name]);
 
   // Compute effective supervisor: only valid for SPECIALIST role
   const effectiveSupervisorId = role === "SPECIALIST" ? supervisorId : "";
@@ -508,11 +512,11 @@ function MemberFormDialog({
   }, [groups, member]);
 
   async function save() {
-    if (!name.trim() || !handle.trim() || !role || (!editing && password.length < 8)) {
-      toast.error("نام، هندل، نقش و رمز عبور حداقل ۸ کاراکتری الزامی است.");
+    if (!name.trim() || !role || (!editing && password.length < 8)) {
+      toast.error("نام، نقش و رمز عبور حداقل ۸ کاراکتری الزامی است.");
       return;
     }
-    const finalHandle = handle.trim().startsWith("@") ? handle.trim() : `@${handle.trim()}`;
+    const finalHandle = editing ? editing.handle : generatedHandle;
 
     setBusy(true);
     try {
@@ -580,16 +584,10 @@ function MemberFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="m-handle">هندل *</Label>
-              <Input
-                id="m-handle"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                placeholder="@ali"
-                dir="ltr"
-                className="text-left"
-                disabled={!!editing}
-              />
+              <Label>هندل *</Label>
+              <div className="rounded-md border bg-muted px-3 py-2 text-sm font-mono text-foreground" dir="ltr">
+                {generatedHandle}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="m-pwd" className="flex items-center gap-1.5">
